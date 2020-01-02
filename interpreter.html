@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@9.17.1/build/styles/default.min.css">
+		<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+		<title>The 𝙲 Programming Language</title>
+		<style type="text/css">
+			textarea {
+				font-family: monospace;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<section>
+				<h1>Source</h1>
+				<p>Type in your 𝙲 source code here and then click "execute" to run it.</p>
+				<textarea id="source" class="form-control" placeholder="Source code" rows=26></textarea>
+				<button id="execute" class="btn btn-primary">Execute</button>
+			</section>
+		</div>
+		<script type="text/javascript" src="𝙲.js"></script>
+		<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
+		<script type="text/javascript" >
+			const $source = document.getElementById('source');
+			const $execute = document.getElementById('execute');
+			if (window.location.search) {
+				$source.value = LZString.decompressFromEncodedURIComponent(window.location.search.substring(1));
+			}
+
+			$execute.onclick = () => {
+				const interpreter = new 𝙲.Interpreter($source.value);
+				$execute.disabled = true;
+				$execute.innerText = "Running...";
+				interpreter.execute(
+					(callback) => {
+						const input = window.prompt("This program is expecting a single character as input. Please enter in a single character now. If you do not enter a single character, we will automatically send the newline character for you. So far, the program has produced the following output: " + interpreter.output.join(''));
+						if (input && input.length === 1) {
+							callback(input.charCodeAt(0));
+						} else {
+							callback('\n');
+						}
+					},
+					() => {
+						window.alert(`Final output: ${interpreter.output.join('')}`);
+						$execute.disabled = false;
+						$execute.innerText = "Execute";
+					}
+				);
+			};
+		</script>
+	</body>
+</html>

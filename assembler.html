@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@9.17.1/build/styles/default.min.css">
+		<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+		<title>The 𝙲 Programming Language</title>
+		<style type="text/css">
+			textarea {
+				font-family: monospace;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<section>
+				<h1>Assembly</h1>
+				<p>In order to generate a 𝙲 program from the underlying assembly, type in
+				your assembly code and your medium here.</p>
+				<div class="row">
+					<div class="col-sm">
+						<textarea id="assembly" class="form-control" placeholder="Assembly code" rows=26></textarea>
+						<span id="assembly-length">0</span> instructions entered.
+					</div>
+					<div class="col-sm">
+						<textarea id="medium" class="form-control" placeholder="Medium" rows=26></textarea>
+						<span id="medium-length">0</span> alphanumeric characters entered.
+					</div>
+				</div>
+			</section>
+			<section>
+				<h1>Source</h1>
+				<p>This is where your generated 𝙲 source will appear.</p>
+				<textarea id="source" class="form-control" placeholder="Source code" rows=26 readonly></textarea>
+				<button id="execute" class="btn btn-primary" disabled>Execute (Disabled)</button>
+			</section>
+			<section>
+				<h1>URLLink</h1>
+				<p>This provides a link to the page interpreter with your code preloaded</p>
+				<a id="link" href=""></a>
+			</section>
+		</div>
+		<script type="text/javascript" src="𝙲.js"></script>
+		<script  type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bacon.js/2.0.9/Bacon.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
+		<script type="text/javascript" >
+			const $assembly = document.getElementById('assembly');
+			const $assemblyLength = document.getElementById('assembly-length');
+			const $medium = document.getElementById('medium');
+			const $mediumLength = document.getElementById('medium-length');
+			const $source = document.getElementById('source');
+			const $execute = document.getElementById('execute');
+			const $link = document.getElementById('link');
+			const fnGetTextAreaVal = e => e.target.value;
+			const bacAssembly = Bacon.fromEvent($assembly, 'input', fnGetTextAreaVal);
+			const bacMedium = Bacon.fromEvent($medium, 'input', fnGetTextAreaVal);
+			const bacExecute = Bacon.fromEvent($execute, 'click');
+			const bacEitherOpCodes = bacAssembly.map(𝙲.toOpcode);
+			const bacOpcodes = bacEitherOpCodes
+				.filter(e => e.right)
+				.map(e => e.right);
+			bacEitherOpCodes.onValue(e => {
+				if (e.left) {
+					$assembly.classList.add('is-invalid');
+				} else {
+					$assembly.classList.remove('is-invalid');
+				}
+			});
+			bacOpcodes.map(a => a.length)
+				.onValue(l => {
+					$assemblyLength.innerText = l;
+				});
+			bacMedium
+				.map(s => s.split('').filter(c => 𝙲.latin.includes(c)).length)
+				.onValue(l => {
+					$mediumLength.innerText = l;
+				});
+			const bacEitherSource = Bacon.combineAsArray(bacEitherOpCodes, bacMedium).map((array) => {
+				if (array[0].left) {
+					return array[0];
+				}
+				return 𝙲.embed(array[0].right, array[1]);
+			});
+			bacEitherSource.onValue(e => {
+				if (e.left) {
+					$source.classList.add('is-invalid');
+					$execute.disabled = true;
+					$execute.innerText = "Execute (Disabled)";
+					$source.value = e.left;
+				} else {
+					$source.classList.remove('is-invalid');
+					$execute.disabled = false;
+					$source.value = e.right;
+					$execute.innerText = "Execute";
+				}
+			});
+			bacEitherSource
+				.sampledBy(bacExecute)
+				.filter(e => e.right)
+				.map(e => e.right)
+				.onValue(source => {
+					const interpreter = new 𝙲.Interpreter(source);
+					interpreter.execute(
+						(callback) => {
+							const input = window.prompt("This program is expecting a single character as input. Please enter in a single character now. If you do not enter a single character, we will automatically send the newline character for you. So far, the program has produced the following output: " + interpreter.output.join(''));
+							if (input && input.length === 1) {
+								callback(input.charCodeAt(0));
+							} else {
+								callback('\n');
+							}
+						},
+						() => {
+							window.alert(`Final output: ${interpreter.output.join('')}`);
+						}
+					);
+				});
+			bacEitherSource
+				.filter(e => e.right)
+				.map(e => e.right)
+				.onValue(source => {
+					$link.href = "interpreter.html?" + LZString.compressToEncodedURIComponent(source);
+					$link.innerText = $link.href;
+				});
+		</script>
+	</body>
+</html>
